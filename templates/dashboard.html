@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard · SkillTrack{% endblock %}
+
+{% block content %}
+  <section class="dashboard-page page-shell">
+    <div class="dashboard-welcome">
+      <div><p class="eyebrow">YOUR DEVELOPMENT SPACE</p><h1>Welcome back, <span>Student.</span></h1><p>Here is a preview of your skill development snapshot.</p></div>
+      <a class="button button-primary" href="{{ url_for('assessment') }}">Go to assessment <span aria-hidden="true">→</span></a>
+      <span class="demo-ribbon">DEMO PREVIEW · VALUES ARE ILLUSTRATIVE</span>
+    </div>
+
+    <section class="overview-panel" aria-labelledby="overall-title">
+      <div class="overview-panel-copy"><p class="mini-eyebrow">OVERALL SKILL LEVEL <span class="demo-tag">DEMO</span></p><h2 id="overall-title">A snapshot of your current foundation.</h2><p>This preview uses sample values only. No student assessment or ML analysis has been run.</p></div>
+      <div class="overall-score"><strong>{{ overall }}<small>%</small></strong><span>DEMO AVERAGE</span><div class="score-track"><span style="width: {{ overall }}%"></span></div></div>
+      <div class="overview-stats"><span class="stat-icon">06</span><span><strong>Core skills</strong><small>In your framework</small></span></div>
+    </section>
+
+    <div class="dashboard-section-title"><div><p class="mini-eyebrow">YOUR FRAMEWORK</p><h2>Skill overview</h2></div><a class="text-link" href="{{ url_for('skills') }}">View all skills <span aria-hidden="true">→</span></a></div>
+    <div class="dashboard-skill-grid">
+      {% for skill in skills %}
+        <article class="dashboard-skill-card">
+          <div class="dashboard-skill-head"><span class="skill-symbol" aria-hidden="true">{{ skill.symbol }}</span><span class="demo-tag">DEMO</span></div>
+          <h3>{{ skill.name }}</h3>
+          <div class="score-label"><span>Illustrative level</span><strong>{{ scores[skill.id] }}%</strong></div>
+          <div class="score-track" role="progressbar" aria-label="Illustrative demo level for {{ skill.name }}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ scores[skill.id] }}"><span style="width: {{ scores[skill.id] }}%"></span></div>
+        </article>
+      {% endfor %}
+    </div>
+
+    <div class="dashboard-lower-grid">
+      <section class="content-panel" aria-labelledby="gaps-title">
+        <div class="panel-heading"><div><p class="mini-eyebrow">FUTURE ANALYSIS</p><h2 id="gaps-title">Your skill gaps</h2></div><span class="panel-mark" aria-hidden="true">↗</span></div>
+        <p class="panel-intro">A preview of how development focus areas may be presented.</p>
+        <div class="gap-list">
+          {% for gap in gaps %}
+            {% set skill = skills|selectattr('id', 'equalto', gap.skill_id)|first %}
+            <div class="gap-item"><span class="gap-indicator tone-{{ gap.tone }}"></span><span class="gap-copy"><strong>{{ skill.name }}</strong><small>Illustrative preview only</small></span><span class="gap-status">{{ gap.status }}</span></div>
+          {% endfor %}
+        </div>
+        <span class="demo-caption">PLACEHOLDER · NOT ASSESSMENT RESULTS</span>
+      </section>
+
+      <section class="content-panel" aria-labelledby="recommendations-title">
+        <div class="panel-heading"><div><p class="mini-eyebrow">SUGGESTED NEXT STEPS</p><h2 id="recommendations-title">Personalized recommendations</h2></div><span class="panel-mark" aria-hidden="true">✳</span></div>
+        <p class="panel-intro">Example ideas shown as placeholders, not generated recommendations.</p>
+        <div class="recommendation-list">
+          {% for recommendation in recommendations[:2] %}
+            {% set skill = skills|selectattr('id', 'equalto', recommendation.skill_id)|first %}
+            <article class="recommendation-item"><span class="recommendation-type">{{ recommendation.kind }}</span><h3>{{ recommendation.title }}</h3><p>{{ recommendation.detail }}</p><span class="recommendation-skill">{{ skill.name }}</span></article>
+          {% endfor %}
+        </div>
+        <a class="text-link panel-link" href="{{ url_for('recommendations') }}">See recommendation preview <span aria-hidden="true">→</span></a>
+      </section>
+    </div>
+
+    <section class="content-panel progress-panel" aria-labelledby="progress-title">
+      <div class="panel-heading"><div><p class="mini-eyebrow">KEEP MOVING FORWARD</p><h2 id="progress-title">Progress over time</h2></div><a class="text-link" href="{{ url_for('progress') }}">Explore progress <span aria-hidden="true">→</span></a></div>
+      <p class="panel-intro">Illustrative progression data shows how future assessment snapshots could be compared.</p>
+      <div class="timeline-bars" role="img" aria-label="Illustrative demo progress values: {% for point in progress %}{{ point.label }} {{ point.value }} percent{% if not loop.last %}, {% endif %}{% endfor %}">
+        {% for point in progress %}<div class="timeline-column"><span class="timeline-value">{{ point.value }}%</span><div class="timeline-track"><span style="height: {{ point.value }}%"></span></div><span class="timeline-label">{{ point.label }}</span></div>{% endfor %}
+      </div>
+      <div class="chart-foot"><span><i></i> Sample overall development</span><span class="demo-caption">DEMO DATA</span></div>
+    </section>
+  </section>
+{% endblock %}

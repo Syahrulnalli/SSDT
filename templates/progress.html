@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Progress · SkillTrack{% endblock %}
+
+{% block content %}
+  <section class="subpage page-shell" aria-labelledby="page-title">
+    <div class="subpage-heading"><p class="eyebrow">YOUR DEVELOPMENT OVER TIME</p><h1 id="page-title">Every step <span>counts.</span></h1><p>Compare assessment snapshots to understand how your skills are developing over time.</p></div>
+    <section class="content-panel standalone-chart" aria-labelledby="chart-title">
+      <div class="panel-heading"><div><p class="mini-eyebrow">OVERALL DEVELOPMENT</p><h2 id="chart-title">Progress snapshot</h2></div><span class="demo-tag">DEMO DATA</span></div>
+      <p class="panel-intro">Temporary visual data only. Previous and current assessments are not connected yet.</p>
+      <div class="timeline-bars timeline-bars-large" role="img" aria-label="Illustrative demo progress values: {% for point in progress %}{{ point.label }} {{ point.value }} percent{% if not loop.last %}, {% endif %}{% endfor %}">
+        {% for point in progress %}<div class="timeline-column"><span class="timeline-value">{{ point.value }}%</span><div class="timeline-track"><span style="height: {{ point.value }}%"></span></div><span class="timeline-label">{{ point.label }}</span></div>{% endfor %}
+      </div>
+      <div class="chart-foot"><span><i></i> Sample overall development</span><span class="demo-caption">PLACEHOLDER · NO REAL ASSESSMENTS</span></div>
+    </section>
+    <div class="progress-explainer"><div><span class="explainer-step">01</span><strong>Previous assessment</strong><small>A baseline to look back on</small></div><span class="explainer-arrow" aria-hidden="true">→</span><div><span class="explainer-step">02</span><strong>Current assessment</strong><small>Your latest skill snapshot</small></div><span class="explainer-arrow" aria-hidden="true">→</span><div><span class="explainer-step">03</span><strong>Progress over time</strong><small>See how your focus develops</small></div></div>
+  </section>
+{% endblock %}

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f7f8f6">
+    <title>{% block title %}Student Skill Development Tracker{% endblock %}</title>
+    <link rel="icon" href="{{ url_for('static', path='favicon.svg') }}" type="image/svg+xml">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href="{{ url_for('home') }}" aria-label="SkillTrack home">
+          <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+          <span>SkillTrack</span>
+        </a>
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-nav" aria-label="Open navigation">
+          <span></span><span></span>
+        </button>
+        <nav class="primary-nav" id="primary-nav" aria-label="Main navigation">
+          <a href="{{ url_for('home') }}" {% if request.url.path == '/' %}aria-current="page"{% endif %}>Home</a>
+          <a href="{{ url_for('dashboard') }}" {% if request.url.path == '/dashboard' %}aria-current="page"{% endif %}>Dashboard</a>
+          <a href="{{ url_for('assessment') }}" {% if request.url.path == '/assessment' %}aria-current="page"{% endif %}>Assessment</a>
+          <a href="{{ url_for('skills') }}" {% if request.url.path == '/skills' %}aria-current="page"{% endif %}>Skills</a>
+          <a href="{{ url_for('recommendations') }}" {% if request.url.path == '/recommendations' %}aria-current="page"{% endif %}>Recommendations</a>
+          <a href="{{ url_for('progress') }}" {% if request.url.path == '/progress' %}aria-current="page"{% endif %}>Progress</a>
+        </nav>
+        <div class="profile-chip" aria-label="Demo profile: Student">
+          <span class="profile-avatar" aria-hidden="true">S</span>
+          <span>Student</span>
+          <span class="demo-pill">DEMO</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-brand"><span class="footer-dot"></span> Student Skill Development Tracker</div>
+      <span>BCA Capstone <span aria-hidden="true">/</span> Batch 2024</span>
+    </footer>
+    <script src="{{ url_for('static', path='js/main.js') }}" defer></script>
+  </body>
+</html>

@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: ssdt-web
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health/database
+    initialDeployHook: python -m backend.app.init_db
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: SERVE_FRONTEND
+        value: "true"
+      - key: AUTO_CREATE_TABLES
+        value: "false"
+      - key: AUTH_COOKIE_SECURE
+        value: "true"
+      - key: FORWARDED_ALLOW_IPS
+        value: "*"
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: GROQ_MODEL
+        value: openai/gpt-oss-20b
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "60"
+      - key: AUTH_COOKIE_NAME
+        value: ssdt_session

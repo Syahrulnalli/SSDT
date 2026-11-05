@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Assessment · SkillTrack{% endblock %}
+
+{% block content %}
+  <section class="subpage page-shell" aria-labelledby="page-title">
+    <div class="subpage-heading"><p class="eyebrow">ASSESSMENT</p><h1 id="page-title">Start with <span>what you know.</span></h1><p>The assessment will help you build a measurable picture across the six official skill areas.</p></div>
+    <div class="assessment-notice"><span class="notice-mark" aria-hidden="true">i</span><div><strong>Assessment flow is being designed</strong><p>We are defining the questions and scoring method before collecting or displaying skill scores.</p></div><span class="status-badge">COMING NEXT</span></div>
+    <div class="assessment-list">
+      {% for skill in skills %}<div class="assessment-row"><span class="skill-symbol" aria-hidden="true">{{ skill.symbol }}</span><span><strong>{{ skill.name }}</strong><small>{{ skill.focus[0] }}</small></span><span class="row-status">Ready to define</span></div>{% endfor %}
+    </div>
+    <div class="subpage-actions"><a class="button button-primary" href="{{ url_for('dashboard') }}">Explore demo dashboard <span aria-hidden="true">→</span></a><a class="text-link" href="{{ url_for('skills') }}">Review all skill areas</a></div>
+  </section>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Skills · SkillTrack{% endblock %}
+
+{% block content %}
+  <section class="subpage page-shell" aria-labelledby="page-title">
+    <div class="subpage-heading"><p class="eyebrow">OFFICIAL SKILL FRAMEWORK</p><h1 id="page-title">Six skills. <span>One clear direction.</span></h1><p>These predefined categories stay consistent throughout assessment, analysis, recommendations, and progress tracking.</p></div>
+    <div class="full-skill-grid">
+      {% for skill in skills %}
+        <article class="full-skill-card"><div class="full-skill-top"><span class="skill-symbol" aria-hidden="true">{{ skill.symbol }}</span><span class="skill-index">SKILL {{ "%02d"|format(loop.index) }}</span></div><h2>{{ skill.name }}</h2><ul>{% for item in skill.focus %}<li>{{ item }}</li>{% endfor %}</ul></article>
+      {% endfor %}
+    </div>
+  </section>
+{% endblock %}

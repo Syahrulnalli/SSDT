@@ -1,0 +1,8 @@
+[
+  {"id":"python","name":"Python","symbol":"Py","focus":["Python fundamentals","Programs, functions, loops, and conditions","Data structures and libraries","Practical Python solutions"]},
+  {"id":"machine-learning","name":"Machine Learning","symbol":"ML","focus":["Fundamental ML concepts","Supervised and unsupervised learning","Common ML algorithms","Training, evaluation, and predictions"]},
+  {"id":"artificial-intelligence","name":"Artificial Intelligence","symbol":"AI","focus":["Fundamental AI concepts","Intelligent systems","AI-based problem solving","AI techniques, applications, and practical problems"]},
+  {"id":"sql-databases","name":"SQL & Databases","symbol":"DB","focus":["Relational database concepts","SQL queries and data retrieval","Creating and managing database structures","Data manipulation and entity relationships"]},
+  {"id":"web-development","name":"Web Development","symbol":"WEB","focus":["Frontend fundamentals","HTML, CSS, and JavaScript","Backend and web application concepts","FastAPI as used in this project"]},
+  {"id":"problem-solving-algorithms","name":"Problem Solving & Algorithms","symbol":"Σ","focus":["Logical thinking and decomposition","Algorithm design","Algorithms and data structures","Efficient programming and computational solutions"]}
+]
