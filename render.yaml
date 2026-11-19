@@ -2,6 +2,12 @@ services:
   - type: web
     name: ssdt-web
     runtime: docker
+    repo: https://github.com/Syahrulnalli/SSDT
+    branch: main
+    autoDeployTrigger: commit
+    rootDir: .
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     plan: free
     healthCheckPath: /api/health/database
     initialDeployHook: python -m backend.app.init_db

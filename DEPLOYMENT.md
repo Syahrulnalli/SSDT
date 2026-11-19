@@ -43,6 +43,20 @@ Configure these only in Render's service environment unless the Blueprint suppli
 
 No frontend build variable is required. In production, React uses relative `/api/...` paths, and the Docker build does not copy either `.env` file.
 
+## If Render shows the legacy demo homepage
+
+The old `DEMO` badge, fixed 61% average, and “Illustrative preview data only” message come from `templates/base.html` and `templates/index.html`. FastAPI serves those legacy Jinja pages when `SERVE_FRONTEND=false`. The current React app is served from `frontend/dist` when `SERVE_FRONTEND=true`; the committed Render Blueprint sets that value and the production configuration rejects a production startup without it.
+
+The Blueprint pins the GitHub repository to `main`, uses the repository root and root `Dockerfile`, builds Vite in that Dockerfile, and starts FastAPI from its Docker `CMD`. It should not be configured as a static site or as a native Python service with separate publish/build commands. To check an existing Render service, confirm its Settings page shows:
+
+- Repository `Syahrulnalli/SSDT`, branch `main`, and root directory `.`
+- Docker runtime, Dockerfile `./Dockerfile`, and context `.`; leave a custom Docker command unset so the image `CMD` runs
+- `APP_ENV=production`, `SERVE_FRONTEND=true`, and `AUTO_CREATE_TABLES=false`
+- No `VITE_API_BASE_URL` or `VITE_API_URL` pointing to localhost; production React should use the same-origin `/api` routes
+- Its GitHub deploy commit matches the current `main` commit shown in GitHub
+
+If the existing service was created outside this Blueprint, sync the Blueprint or correct those settings in Render, then use **Manual Deploy → Deploy latest commit**. Inspect the deploy log and compare its commit SHA with GitHub `main`. After deploy, `/login` should return the React app, `/api/health` and `/api/health/database` should respond, and the page should load a hashed `/assets/index-….js` bundle. Seeing the legacy disclaimer in the homepage HTML means the deployed service is still using the Jinja fallback or an older deployment; it is not a browser-cache diagnosis.
+
 ## Verify the deployed site
 
 Use a dedicated synthetic test account, not a real student's account or records.
