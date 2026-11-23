@@ -1,26 +1,36 @@
 # Student Skill Development Tracker
 
-A BCA capstone project for assessing six official student skills, identifying areas for growth, and tracking progress. The React dashboard uses saved PostgreSQL assessment results for deterministic skill analysis and can request Groq-generated learning guidance.
+A BCA capstone project for assessing six official student skills, identifying areas for growth, and tracking progress. Normal mode uses PostgreSQL; optional demo mode runs without PostgreSQL using temporary in-memory storage.
 
 ## Stack and current status
 
 - Python, FastAPI, Uvicorn, SQLAlchemy, PostgreSQL, psycopg 3, and the Groq Python SDK.
-- The existing HTML/Jinja pages remain served by FastAPI. The separate React/Vite frontend MVP is in `frontend/`; it communicates with FastAPI, while Groq requests stay in the backend.
-- PostgreSQL is the source of truth for students, skills, assessments, and assessment results. Skill display metadata comes from the canonical catalog.
-- The preserved server-rendered Jinja preview pages still use illustrative data from `demo_data.py`. The React application uses authenticated FastAPI endpoints and saved PostgreSQL results for student analysis and recommendations.
+- The React/Vite frontend is in `frontend/`; page controllers, reusable components, API services, styles, and assets have separate folders. FastAPI serves the built React app in production.
+- With `DEMO_MODE=false`, PostgreSQL remains the source of truth for registered students, skills, assessments, and results.
+- With `DEMO_MODE=true`, the server ignores `DATABASE_URL` and uses a real in-memory SQLite database. The configured demo account can complete quizzes and use progress, analysis, and recommendations, but those records reset when the server restarts. The UI labels this temporary storage.
+- Legacy Jinja preview pages remain in `templates/`; they are separate from the React dashboard and may contain illustrative content.
 - The six official skills are Python, Machine Learning, Artificial Intelligence, SQL & Databases, Web Development, and Problem Solving & Algorithms.
 
 ## Requirements
 
 - Python 3.11 or newer
-- PostgreSQL 14 or newer
+- PostgreSQL 14 or newer for normal database mode; PostgreSQL is not required for demo mode
 - Node.js 22.12+ (or 20.19+) and npm for the React/Vite frontend.
+
+## Quick PostgreSQL-free demo
+
+1. Copy `.env.example` to `.env` and set `DEMO_MODE=true`, `DEMO_USERNAME`, and `DEMO_PASSWORD` to private values. Use a password of at least 12 characters.
+2. Set a private `JWT_SECRET_KEY` of at least 32 bytes. Keep all credentials in `.env`; do not commit them.
+3. Install the Python requirements, then start FastAPI with `uvicorn app:app --reload`. No PostgreSQL installation or initializer is required in demo mode.
+4. Open `http://127.0.0.1:8000`, sign in with the configured demo credentials, and complete a quiz. Registration is disabled in this mode.
+
+The demo uses a separate in-memory SQLite database and displays a notice that quiz results are temporary. They disappear when the server process restarts. Set `DEMO_MODE=false` and configure `DATABASE_URL` to use PostgreSQL instead.
 
 ## Public deployment
 
-The production option prepared for this repository is a single Docker-based Render web service. It builds React/Vite into static files served by FastAPI, so the browser uses one HTTPS origin for the UI and API. PostgreSQL and Groq remain server-side services. The deployment blueprint does not create a database or transfer local records.
+The prepared Render option is one Docker web service that builds React/Vite and serves it together with FastAPI on one HTTPS origin. The Blueprint enables PostgreSQL-free demo mode by default, so a database resource is not required for the capstone demo. Demo results are temporary and disappear on restart. Normal PostgreSQL mode remains available by setting `DEMO_MODE=false` and configuring `DATABASE_URL`.
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for the ordered GitHub/Render setup, required provider-side secrets, one-time schema initialization, public smoke checks, and current free-tier limitations. Production startup requires PostgreSQL, a private JWT key, HTTPS cookies, the built React app, and `AUTO_CREATE_TABLES=false`; it fails closed when those requirements are missing.
+See [DEPLOYMENT.md](DEPLOYMENT.md) for GitHub/Render setup, provider-side secrets, demo account configuration, database-mode instructions, smoke checks, and hosting limitations. Production requires a private JWT key, HTTPS cookies, the built React app, and `AUTO_CREATE_TABLES=false`; it requires PostgreSQL only when demo mode is disabled.
 
 ## PostgreSQL setup on Windows
 
@@ -43,18 +53,17 @@ Copy-Item .env.example .env
 notepad .env
 ```
 
-Set `DATABASE_URL` in `.env` to your own local username and password. The `.env.example` value is only a placeholder; do not commit real credentials. Keep `FRONTEND_ORIGINS` restricted to the actual local frontend origin. The default entries support common React/Vite development ports.
+For PostgreSQL mode, set `DATABASE_URL` to your local PostgreSQL connection string. For an isolated local demo, set `DEMO_MODE=true`, `DEMO_USERNAME`, and `DEMO_PASSWORD` (at least 12 characters in production); demo mode ignores `DATABASE_URL` and never connects to PostgreSQL. Keep credentials out of Git. `DEMO_STUDENT_NAME`, `DEMO_STUDENT_EMAIL`, `DEMO_STUDENT_PROGRAM`, and `DEMO_STUDENT_BATCH` configure the clearly labeled demo profile. `FRONTEND_ORIGINS` should contain only the local frontend origins used by your browser.
 
-Create and activate a virtual environment, then install dependencies and initialize the schema:
+Create and activate a virtual environment, then install dependencies:
 
 ```powershell
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
-python -m backend.app.init_db
 ```
 
-The initialization command creates the `students`, `skills`, `assessments`, and `assessment_results` tables, then idempotently seeds the six official skills. The development server also runs this initializer on startup while `AUTO_CREATE_TABLES=true`. Set that variable to `false` when a migration workflow is introduced.
+For normal PostgreSQL mode, initialize a new/local schema with `python -m backend.app.init_db`. In demo mode the app creates a separate in-memory SQLite schema and seeds the official skills at startup. Demo data is never written to PostgreSQL. Do not run the initializer against a production database without reviewing the target and its schema first.
 
 ## Start the application
 
@@ -62,13 +71,13 @@ The initialization command creates the `students`, `skills`, `assessments`, and 
 uvicorn app:app --reload
 ```
 
-Open the existing site at `http://127.0.0.1:8000`. FastAPI's interactive documentation is at `http://127.0.0.1:8000/docs`; ReDoc is at `http://127.0.0.1:8000/redoc`.
+Open `http://127.0.0.1:8000`. In demo mode, the login uses the configured demo credentials, registration is disabled, and the site displays a notice that results are temporary. FastAPI's interactive documentation is at `http://127.0.0.1:8000/docs` outside production.
 
 ## API overview
 
-- `GET /api/health` — API process status and whether a database URL is configured.
+- `GET /api/health` — API process status plus database/demo storage mode.
 - `GET /api/health/groq` — safe Groq configuration and model connectivity check.
-- `GET /api/health/database` — PostgreSQL connectivity check.
+- `GET /api/health/database` — active database connectivity check; reports `sqlite-demo` in demo mode.
 - `GET /api/skills` and `GET /api/skills/{skill_id}` — read the seeded official skill rows.
 - `POST /api/students` and `GET /api/students/{student_id}` — create and retrieve profiles.
 - `GET /api/students/{student_id}/skills` — latest recorded score for each official skill.

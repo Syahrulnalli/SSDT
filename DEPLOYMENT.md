@@ -2,27 +2,26 @@
 
 ## Prepared architecture
 
-Use one Render Docker web service for the whole app: Vite builds the React site, FastAPI serves those assets and the `/api` routes on the same HTTPS host, SQLAlchemy connects to a separate managed PostgreSQL database, and Groq is called only by FastAPI. Same-origin hosting keeps the existing HttpOnly, Secure, SameSite=Lax login cookie and avoids a separate frontend service. The existing UI and six official skills are unchanged.
+Use one Render Docker web service: Vite builds React, and FastAPI serves the frontend and `/api` routes on the same HTTPS origin. The default Blueprint setting enables a database-independent demo using an isolated in-memory SQLite database. This is an actual SQLite connection, not a simulated PostgreSQL connection. Demo assessment data is temporary and is discarded when the service restarts. Groq remains optional and server-side.
 
-The Render Blueprint in `render.yaml` creates only the web service. It does not create a database or copy local records. Its one-time `initialDeployHook` runs `python -m backend.app.init_db` after the first successful deployment; normal restarts do not initialize or alter the schema. Use a newly provisioned, empty production database for this first deploy. The initializer creates missing tables, applies the repository's existing additive student link/index setup, and seeds the six official skills. The project does not yet have a versioned migration framework, so review and apply future schema changes deliberately before deploying them.
+The Blueprint does not create a PostgreSQL resource or copy any local records. In demo mode the app creates its temporary SQLite tables and seeds the six official skills on startup. The project does not yet have a versioned migration framework. To switch to persistent database mode later, set `DEMO_MODE=false`, configure `DATABASE_URL` with a PostgreSQL connection, and deliberately initialize/review that database before the service starts using it.
 
-## Before connecting GitHub
+## Push the reviewed project to GitHub
 
 1. Review the changed files and confirm the project builds and tests locally using the commands in the README.
-2. This workspace does not have the Git executable available. If the project is not already a Git repository, install Git and initialize it from the project root. Create a **private** GitHub repository; keep it private while student accounts are being tested.
-3. Before the first commit, check `git status` and make sure `.env`, `frontend/.env`, `.env.*` secret variants, `.venv`, `frontend/node_modules`, and generated build output are ignored. `.env.example` is deliberately allowed. Never upload a real `.env` file or paste secrets into GitHub, this file, or chat.
-4. Commit the project and push the selected branch to that private GitHub repository. Do not publish the repository publicly for this demo.
+2. This project is already a Git repository connected to `https://github.com/Syahrulnalli/SSDT` on branch `main`. Review `git status` and the diff before committing; do not reset or force-push.
+3. `.env`, `.env.*` variants other than `.env.example`, `.venv`, `frontend/node_modules`, and `frontend/dist` are ignored. Never stage `supabase.txt`, credentials, database exports, or student data.
+4. Stage only the reviewed source, test, and documentation files; commit to `main` and push normally. Check GitHub's latest commit after the push.
 
-## Create the production database and web service
+## Create the demo web service
 
-1. Sign in to Render and create a **new managed PostgreSQL database** in the region you will use for the web service. Give it a separate production name such as `ssdt-prod`. Do not point it at your existing local `student_skill_tracker` database and do not import local student records.
-2. For persistent student data, choose a paid database plan and review the displayed storage, backup, and usage charges before confirming. Render's free database is temporary and has no backups; see the caveats below.
-3. In the Render dashboard, create a Blueprint from the private GitHub repository and use its `render.yaml`. The Blueprint creates the Docker web service only. Select the same region as PostgreSQL.
-4. When prompted for `DATABASE_URL`, copy the database's **internal** connection URL from Render into that provider field. Do not put it in source code, a frontend variable, or chat. The application normalizes Render's `postgres://` URL to SQLAlchemy's psycopg 3 driver.
-5. The Blueprint generates `JWT_SECRET_KEY` for the service and sets production mode, HTTPS cookies, trusted Render proxy headers, SPA serving, and `AUTO_CREATE_TABLES=false`. Keep these values. `FRONTEND_ORIGINS` can stay unset for the single-origin site; same-origin registration/login requests are checked against the request host. If a separate trusted frontend is intentionally added later, set only its exact HTTPS origin there.
-6. `GROQ_API_KEY` is optional. After deployment, add it directly in the Render service's Environment page if AI wording is desired. Add `GROQ_MODEL` only if you want a different model than the configured default. Never use `VITE_*` variables for server secrets.
-7. Deploy. Render builds the frontend and Python runtime in the Dockerfile. The database readiness endpoint gates deployment. After the first successful deploy, the one-time hook initializes this new database and seeds official skills. Later deploys do not rerun the hook.
-8. Copy the HTTPS `onrender.com` URL from the service overview. That is the public website URL; the same host also serves the API.
+1. Push the reviewed commit to GitHub `main`.
+2. In Render, create a Blueprint using the existing private repository `Syahrulnalli/SSDT` and its `render.yaml`. Use the repository root. It creates one Docker web service; do not create a separate static site or PostgreSQL resource for the demo.
+3. Keep the Blueprint's production settings. Enter a private `DEMO_USERNAME` and a strong `DEMO_PASSWORD` (at least 12 characters) when Render asks for the unsynced values. These are server environment variables; never commit them or put them in frontend settings.
+4. `JWT_SECRET_KEY` is generated by the Blueprint. `DEMO_MODE=true`, `APP_ENV=production`, `SERVE_FRONTEND=true`, `AUTH_COOKIE_SECURE=true`, and `AUTO_CREATE_TABLES=false` are supplied by the Blueprint. No `DATABASE_URL` is needed in demo mode.
+5. Optionally add `GROQ_API_KEY` in Render's Environment page if you want to test generated recommendation wording. Never use a `VITE_*` variable for a server secret.
+6. Deploy. Render builds Vite and FastAPI from the root Dockerfile. Copy the HTTPS `onrender.com` address from the service overview; that same origin serves the site and API.
+7. Open the site, sign in with your configured demo username/password, complete a quiz, and verify the dashboard, progress, analysis, and recommendations. The visible demo notice explains that results are temporary. Refreshing the page keeps data while the process remains alive; a service restart or instance replacement clears it.
 
 ## Production variables
 
@@ -30,8 +29,11 @@ Configure these only in Render's service environment unless the Blueprint suppli
 
 | Variable | Purpose | Where it belongs |
 | --- | --- | --- |
-| `DATABASE_URL` | Internal connection string for the new managed PostgreSQL database | Render secret/environment setting; never frontend |
 | `JWT_SECRET_KEY` | Private token-signing secret, generated by the Blueprint | Render secret/environment setting; keep generated value |
+| `DEMO_MODE=true` | Uses the isolated temporary SQLite demo store and ignores PostgreSQL | Blueprint |
+| `DEMO_USERNAME` | Username accepted by demo login | Required Render secret/environment value; set it yourself |
+| `DEMO_PASSWORD` | Password accepted by demo login; minimum 12 characters in production | Required Render secret/environment value; set it yourself |
+| `DEMO_STUDENT_NAME`, `DEMO_STUDENT_EMAIL`, `DEMO_STUDENT_PROGRAM`, `DEMO_STUDENT_BATCH` | Clearly labeled demo profile fields; defaults are in `.env.example` | Optional Render settings |
 | `GROQ_API_KEY` | Optional server-side Groq credential for AI wording | Render secret/environment setting; omit to keep deterministic recommendations |
 | `GROQ_MODEL` | Server-side model name | Render setting; default is already in Blueprint |
 | `APP_ENV=production` | Enables production validation and hides interactive API docs | Blueprint |
@@ -43,6 +45,12 @@ Configure these only in Render's service environment unless the Blueprint suppli
 
 No frontend build variable is required. In production, React uses relative `/api/...` paths, and the Docker build does not copy either `.env` file.
 
+## Switch to persistent PostgreSQL mode later
+
+When you are ready for database-backed accounts and records, configure a PostgreSQL service and store its internal connection URL as `DATABASE_URL` in the Render web service environment. Set `DEMO_MODE=false` and remove the demo credentials from the service settings. Before deploying that change, initialize and inspect the selected database using the project's explicit initializer and verify the schema; do not point it at a database containing records you intend to preserve without first checking the existing schema. Existing local data is never copied automatically. The app then uses PostgreSQL for registration, login, quizzes, progress, and recommendations. Keep a backup and use a reviewed migration process for schema changes.
+
+Demo mode is intended for one running application instance because its SQLite database is process-local and in-memory. It is a presentation mode, not durable student-data hosting.
+
 ## If Render shows the legacy demo homepage
 
 The old `DEMO` badge, fixed 61% average, and “Illustrative preview data only” message come from `templates/base.html` and `templates/index.html`. FastAPI serves those legacy Jinja pages when `SERVE_FRONTEND=false`. The current React app is served from `frontend/dist` when `SERVE_FRONTEND=true`; the committed Render Blueprint sets that value and the production configuration rejects a production startup without it.
@@ -52,6 +60,7 @@ The Blueprint pins the GitHub repository to `main`, uses the repository root and
 - Repository `Syahrulnalli/SSDT`, branch `main`, and root directory `.`
 - Docker runtime, Dockerfile `./Dockerfile`, and context `.`; leave a custom Docker command unset so the image `CMD` runs
 - `APP_ENV=production`, `SERVE_FRONTEND=true`, and `AUTO_CREATE_TABLES=false`
+- `DEMO_MODE=true`, a configured `DEMO_USERNAME`, and a private `DEMO_PASSWORD`; no `DATABASE_URL` is required in demo mode
 - No `VITE_API_BASE_URL` or `VITE_API_URL` pointing to localhost; production React should use the same-origin `/api` routes
 - Its GitHub deploy commit matches the current `main` commit shown in GitHub
 
@@ -59,16 +68,16 @@ If the existing service was created outside this Blueprint, sync the Blueprint o
 
 ## Verify the deployed site
 
-Use a dedicated synthetic test account, not a real student's account or records.
+Use the configured demo credentials. Do not use a real student's account or records for deployment checks.
 
 1. Open the public URL and confirm it redirects/loads over HTTPS.
 2. Refresh `/`, then directly open and refresh `/dashboard`, `/assessment`, `/skills`, `/recommendations`, and `/progress` to verify React deep links.
-3. Register a test account, refresh, confirm the session remains logged in, then log out and log back in.
+3. In demo mode, sign in with the configured demo username/password, refresh, confirm the cookie session is restored, then log out and sign in again. Registration is intentionally disabled. In persistent PostgreSQL mode only, use a dedicated synthetic account for registration checks.
 4. Confirm all six official skills appear. Complete a quiz for one skill and verify the saved assessment appears in dashboard analysis, progress history, and deterministic recommendations.
 5. If `GROQ_API_KEY` is configured, use the explicit **Generate AI guidance** action and verify the returned wording. The health check alone does not prove generation works. If no key is configured or Groq fails, verify deterministic recommendations remain available.
-6. Create a second synthetic account and verify it cannot read the first account's assessments, analysis, progress, or recommendations.
+6. The demo has one configured account and disables registration. Cross-account ownership is covered by automated backend tests. In persistent PostgreSQL mode, use two synthetic accounts to repeat that check.
 7. Check browser developer tools for failed requests or localhost URLs. Check Render deploy/runtime logs for startup errors; do not copy secret values or student records into a public issue.
-8. Confirm `GET /api/health` returns process status and `GET /api/health/database` returns PostgreSQL readiness. Production API docs are disabled.
+8. Confirm `GET /api/health` returns process/storage mode and `GET /api/health/database` returns `sqlite-demo` in demo mode or PostgreSQL readiness in normal mode. Production API docs are disabled.
 
 For a later release, push a reviewed commit to GitHub; Render will build and deploy it from the connected branch. Review the deploy logs and repeat the smoke checks after each release. Do not add a schema change to ordinary app startup; review it and use an explicit, versioned migration path first.
 

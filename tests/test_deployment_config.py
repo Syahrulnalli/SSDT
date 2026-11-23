@@ -1,6 +1,10 @@
 """Focused checks for fail-closed production settings and same-origin CSRF."""
 
 import asyncio
+import os
+from pathlib import Path
+import subprocess
+import sys
 
 import pytest
 from fastapi import HTTPException, Request
@@ -12,6 +16,7 @@ from backend.app.main import database_error_handler
 
 def _production_settings(monkeypatch, *, origins=()):
     monkeypatch.setattr(config, "IS_PRODUCTION", True)
+    monkeypatch.setattr(config, "DEMO_MODE", False)
     monkeypatch.setattr(config, "DATABASE_URL", "postgresql+psycopg://user:pass@db.example/ssdt")
     monkeypatch.setattr(config, "JWT_SECRET_KEY", "synthetic-secret-with-more-than-32-bytes")
     monkeypatch.setattr(config, "AUTH_COOKIE_SECURE", True)
@@ -23,6 +28,51 @@ def _production_settings(monkeypatch, *, origins=()):
 def test_production_config_accepts_same_origin_without_cors_allowlist(monkeypatch):
     _production_settings(monkeypatch)
     config.validate_production_config()
+
+
+def test_production_demo_mode_does_not_require_postgresql(monkeypatch):
+    _production_settings(monkeypatch)
+    monkeypatch.setattr(config, "DEMO_MODE", True)
+    monkeypatch.setattr(config, "DATABASE_URL", None)
+    monkeypatch.setattr(config, "DEMO_USERNAME", "syahrul")
+    monkeypatch.setattr(config, "DEMO_PASSWORD", "synthetic-demo-password-2026")
+    config.validate_production_config()
+
+
+def test_demo_mode_selects_real_sqlite_engine_and_ignores_postgres_url():
+    environment = os.environ.copy()
+    environment["DEMO_MODE"] = "true"
+    environment["DATABASE_URL"] = "postgresql+psycopg://unused:unused@127.0.0.1:1/unused"
+    result = subprocess.run(
+        [sys.executable, "-c", "from backend.app.core.database import engine; from backend.app.core.config import DATABASE_URL; print(engine.dialect.name, DATABASE_URL is None)"],
+        cwd=Path(__file__).resolve().parents[1],
+        env=environment,
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=15,
+    )
+    assert result.stdout.strip() == "sqlite True"
+
+
+def test_render_blueprint_defaults_to_database_independent_demo():
+    blueprint = (Path(__file__).resolve().parents[1] / "render.yaml").read_text(encoding="utf-8")
+    assert "healthCheckPath: /api/health/database" in blueprint
+    assert "key: DEMO_MODE\n        value: \"true\"" in blueprint
+    assert "key: DEMO_USERNAME\n        sync: false" in blueprint
+    assert "key: DEMO_PASSWORD\n        sync: false" in blueprint
+    assert "key: DATABASE_URL" not in blueprint
+
+
+@pytest.mark.parametrize(("username", "password"), [("", "synthetic-demo-password-2026"), ("syahrul", "short")])
+def test_production_demo_mode_requires_configured_credentials(monkeypatch, username, password):
+    _production_settings(monkeypatch)
+    monkeypatch.setattr(config, "DEMO_MODE", True)
+    monkeypatch.setattr(config, "DATABASE_URL", None)
+    monkeypatch.setattr(config, "DEMO_USERNAME", username)
+    monkeypatch.setattr(config, "DEMO_PASSWORD", password)
+    with pytest.raises(RuntimeError, match="DEMO_USERNAME"):
+        config.validate_production_config()
 
 
 @pytest.mark.parametrize(

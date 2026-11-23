@@ -10,7 +10,6 @@ services:
     dockerContext: .
     plan: free
     healthCheckPath: /api/health/database
-    initialDeployHook: python -m backend.app.init_db
     envVars:
       - key: APP_ENV
         value: production
@@ -18,12 +17,24 @@ services:
         value: "true"
       - key: AUTO_CREATE_TABLES
         value: "false"
+      - key: DEMO_MODE
+        value: "true"
       - key: AUTH_COOKIE_SECURE
         value: "true"
       - key: FORWARDED_ALLOW_IPS
         value: "*"
-      - key: DATABASE_URL
+      - key: DEMO_USERNAME
         sync: false
+      - key: DEMO_PASSWORD
+        sync: false
+      - key: DEMO_STUDENT_NAME
+        value: Syahrul Nalli
+      - key: DEMO_STUDENT_EMAIL
+        value: demo@example.com
+      - key: DEMO_STUDENT_PROGRAM
+        value: BCA (AI/ML)
+      - key: DEMO_STUDENT_BATCH
+        value: Demo
       - key: JWT_SECRET_KEY
         generateValue: true
       - key: GROQ_MODEL

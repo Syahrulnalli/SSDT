@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
-from backend.app.core.config import AUTH_COOKIE_NAME, AUTH_COOKIE_SECURE
+from backend.app.core.config import AUTH_COOKIE_NAME, AUTH_COOKIE_SECURE, DEMO_MODE
 from backend.app.core.database import get_db, require_database
 from backend.app.core.security import (
     get_current_user,
@@ -29,6 +29,11 @@ def register(
     response: Response,
     db: Session | None = Depends(get_db),
 ) -> AuthSessionRead:
+    if DEMO_MODE:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account registration is disabled in demo mode. Sign in with the configured demo account.",
+        )
     db = require_database(db)
     user, student = register_user(db, payload)
     set_auth_cookie(response, user.id)

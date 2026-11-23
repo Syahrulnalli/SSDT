@@ -14,11 +14,13 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from backend.app.api.router import api_router
 from backend.app.core.config import (
-    AUTO_CREATE_TABLES, FRONTEND_ORIGINS, IS_PRODUCTION, SERVE_FRONTEND,
+    AUTO_CREATE_TABLES, DEMO_MODE, FRONTEND_ORIGINS, IS_PRODUCTION, SERVE_FRONTEND,
     validate_production_config,
 )
-from backend.app.core.database import engine
+from backend.app.core.database import Base, SessionLocal, engine
 from backend.app.init_db import initialize_database
+from backend.app.models import Assessment, AssessmentResult, Skill, Student, User  # noqa: F401
+from backend.app.services.skill_service import seed_official_skills
 from demo_data import DEMO_GAPS, DEMO_PROGRESS, DEMO_RECOMMENDATIONS, DEMO_SKILL_SCORES
 from skill_catalog import SKILLS
 
@@ -34,7 +36,11 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     validate_production_config()
     if SERVE_FRONTEND and not FRONTEND_INDEX.is_file():
         raise RuntimeError("SERVE_FRONTEND is enabled but the built React app is missing.")
-    if engine is not None and AUTO_CREATE_TABLES:
+    if DEMO_MODE and engine is not None and SessionLocal is not None:
+        Base.metadata.create_all(bind=engine)
+        with SessionLocal() as db:
+            seed_official_skills(db)
+    elif engine is not None and AUTO_CREATE_TABLES:
         initialize_database()
     try:
         yield

@@ -5,15 +5,27 @@ from collections.abc import Generator
 from fastapi import HTTPException, status
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
-from backend.app.core.config import DATABASE_URL
+from backend.app.core.config import DATABASE_URL, DEMO_MODE
 
 
 class Base(DeclarativeBase):
     pass
 
 
-engine = create_engine(DATABASE_URL, pool_pre_ping=True) if DATABASE_URL else None
+if DEMO_MODE:
+    # A real, isolated in-memory SQLite database backs the optional demo. It
+    # never opens the configured PostgreSQL connection and is lost on restart.
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+elif DATABASE_URL:
+    engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+else:
+    engine = None
 SessionLocal = (
     sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
     if engine

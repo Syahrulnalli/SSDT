@@ -3,6 +3,7 @@
 Run with ``python -m backend.app.init_db`` from the project root.
 """
 
+from backend.app.core.config import DEMO_MODE
 from backend.app.core.database import Base, SessionLocal, engine
 from backend.app.models import Assessment, AssessmentResult, Skill, Student, User  # noqa: F401
 from backend.app.services.skill_service import seed_official_skills
@@ -14,6 +15,10 @@ def initialize_database() -> None:
         raise RuntimeError("Set DATABASE_URL to a PostgreSQL connection before initialization.")
 
     Base.metadata.create_all(bind=engine)
+    if DEMO_MODE:
+        with SessionLocal() as db:
+            seed_official_skills(db)
+        return
     # create_all does not add columns to an existing students table. This
     # additive migration leaves legacy student rows unlinked and unchanged.
     with engine.begin() as connection:
@@ -35,4 +40,7 @@ def initialize_database() -> None:
 
 if __name__ == "__main__":
     initialize_database()
-    print("Database tables are ready and the six official skills are seeded.")
+    if DEMO_MODE:
+        print("Temporary demo schema is ready; all demo data is process-local and non-persistent.")
+    else:
+        print("PostgreSQL tables are ready and the six official skills are seeded.")

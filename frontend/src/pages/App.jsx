@@ -1,22 +1,23 @@
 import React, { useEffect, useState } from "react";
-import CATALOG from "../../skill_catalog.json";
-import { api } from "./api.js";
-import brandLogo from "./assets/logo/ssdt-logo.png";
-import brandMark from "./assets/logo/ssdt-mark.png";
-import pythonImage from "./assets/skills/python.png";
-import machineLearningImage from "./assets/skills/machine-learning.png";
-import artificialIntelligenceImage from "./assets/skills/artificial-intelligence.png";
-import sqlDatabasesImage from "./assets/skills/sql-databases.png";
-import webDevelopmentImage from "./assets/skills/web-development.png";
-import problemSolvingImage from "./assets/skills/problem-solving-algorithms.png";
-import assessmentImage from "./assets/features/skill-assessment.png";
-import skillGapsImage from "./assets/features/skill-gaps.png";
-import recommendationsImage from "./assets/features/recommendations.png";
-import progressImage from "./assets/features/progress-tracking.png";
-import achievementsImage from "./assets/features/achievements.png";
-import dashboardImage from "./assets/features/dashboard.png";
-import studentGrowthImage from "./assets/features/student-growth.png";
-import studentGrowthHeroImage from "./assets/features/student-growth-hero.png";
+import CATALOG from "../../../skill_catalog.json";
+import { api } from "../services/api.js";
+import { EmptyState, Eyebrow, Icon, Notice, SectionTitle, SkillApiStatus } from "../components/ui.jsx";
+import brandLogo from "../assets/logo/ssdt-logo.png";
+import brandMark from "../assets/logo/ssdt-mark.png";
+import pythonImage from "../assets/skills/python.png";
+import machineLearningImage from "../assets/skills/machine-learning.png";
+import artificialIntelligenceImage from "../assets/skills/artificial-intelligence.png";
+import sqlDatabasesImage from "../assets/skills/sql-databases.png";
+import webDevelopmentImage from "../assets/skills/web-development.png";
+import problemSolvingImage from "../assets/skills/problem-solving-algorithms.png";
+import assessmentImage from "../assets/features/skill-assessment.png";
+import skillGapsImage from "../assets/features/skill-gaps.png";
+import recommendationsImage from "../assets/features/recommendations.png";
+import progressImage from "../assets/features/progress-tracking.png";
+import achievementsImage from "../assets/features/achievements.png";
+import dashboardImage from "../assets/features/dashboard.png";
+import studentGrowthImage from "../assets/features/student-growth.png";
+import studentGrowthHeroImage from "../assets/features/student-growth-hero.png";
 
 const SKILL_IMAGES = {
   python: pythonImage,
@@ -60,36 +61,15 @@ function pageFromPath() {
   return Object.entries(PAGE_PATHS).find(([, value]) => value === path)?.[0] || "home";
 }
 
-function Icon({ name, size = 18 }) {
-  const shapes = {
-    home: <><path d="m3 10 9-7 9 7"/><path d="M5 9v11h14V9M9 20v-7h6v7"/></>,
-    layers: <><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5M3 16l9 5 9-5"/></>,
-    clipboard: <><rect x="5" y="4.5" width="14" height="17" rx="2"/><path d="M9 4.5v-1h6v1M8.5 10h7M8.5 14h7M8.5 18h4"/></>,
-    grid: <><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></>,
-    chart: <><path d="M4 19V5M4 19h17"/><path d="m7 15 4-4 3 2 6-7"/></>,
-    spark: <><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/><path d="m19 16 .9 2.1L22 19l-2.1.9L19 22l-.9-2.1L16 19l2.1-.9L19 16Z"/></>,
-    arrow: <><path d="M5 12h14M13 6l6 6-6 6"/></>,
-    chevron: <path d="m9 18 6-6-6-6"/>,
-    moon: <path d="M20.5 14.1A8.5 8.5 0 0 1 9.9 3.5 8.5 8.5 0 1 0 20.5 14.1Z"/>,
-    sun: <><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></>,
-    check: <path d="m5 12 4 4L19 6"/>,
-    book: <><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21V5.5Z"/><path d="M4 17.5A2.5 2.5 0 0 1 6.5 15H20M8 7h8M8 10h6"/></>,
-    menu: <><path d="M4 7h16M4 12h16M4 17h16"/></>,
-    close: <><path d="m6 6 12 12M18 6 6 18"/></>,
-    warning: <><path d="M10.3 3.9 2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4m0 4h.01"/></>,
-  };
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{shapes[name]}</svg>;
-}
-
 function App() {
   const [page, setPage] = useState(pageFromPath);
   const [theme, setTheme] = useState(() => localStorage.getItem("skilltrack.theme") || "light");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [authState, setAuthState] = useState("loading");
+  const [demoMode, setDemoMode] = useState(false);
   const [account, setAccount] = useState(null);
   const [returnPage, setReturnPage] = useState(null);
   const [authError, setAuthError] = useState("");
-  const [apiState, setApiState] = useState("checking");
   const [groqStatus, setGroqStatus] = useState({ state: "idle", model: "openai/gpt-oss-20b" });
   const [skills, setSkills] = useState(CATALOG);
   const [skillsState, setSkillsState] = useState("loading");
@@ -149,6 +129,13 @@ function App() {
   }, [authState, page]);
 
   useEffect(() => {
+    if (demoMode && page === "register") {
+      setPage("login");
+      window.history.replaceState({}, "", PAGE_PATHS.login);
+    }
+  }, [demoMode, page]);
+
+  useEffect(() => {
     function handleUnauthorized() {
       if (authState !== "authenticated") return;
       if (PRIVATE_PAGES.has(page)) setReturnPage(page);
@@ -170,19 +157,9 @@ function App() {
 
   useEffect(() => {
     let live = true;
-    api.health().then(async (health) => {
-      if (!live) return;
-      if (!health.database_configured) {
-        setApiState("setup");
-        return;
-      }
-      try {
-        await api.databaseHealth();
-        if (live) setApiState("connected");
-      } catch {
-        if (live) setApiState("database-down");
-      }
-    }).catch(() => live && setApiState("offline"));
+    api.health().then((health) => {
+      if (live) setDemoMode(health.demo_mode === true);
+    }).catch(() => {});
     api.skills().then((data) => {
       if (!live) return;
       if (!Array.isArray(data)) throw new Error("The skills response was not a list.");
@@ -313,17 +290,18 @@ function App() {
         {NAV.filter(([id]) => authState === "authenticated" || id === "home").map(([id, label, icon]) => <button className={`nav-link ${page === id ? "is-active" : ""}`} key={id} type="button" aria-current={page === id ? "page" : undefined} onClick={() => navigate(id)}><Icon name={icon} size={16} /><span>{label}</span></button>)}
       </nav>
       <div className="header-actions">
-        <span className={`api-status api-${apiState}`} title={apiStateLabel(apiState)}><i /> <span>{apiStateLabel(apiState)}</span></span>
         <button className="theme-toggle" type="button" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`} title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}><Icon name={theme === "dark" ? "sun" : "moon"} size={17} /></button>
-        {authState === "authenticated" ? <><button className="profile-button" type="button" onClick={() => navigate("profile")}><span className="avatar">{student?.name?.[0]?.toUpperCase() || "S"}</span><span>{student?.name || account?.username || "Student"}</span></button><button className="button button-quiet auth-logout" type="button" onClick={logout}>Log out</button></> : authState === "loading" ? <span className="auth-loading-label">Checking session…</span> : <><button className="button button-quiet auth-header-link" type="button" onClick={() => navigate("login")}>Sign in</button><button className="button button-primary auth-header-link" type="button" onClick={() => navigate("register")}>Create account</button></>}
+        {authState === "authenticated" ? <><button className="profile-button" type="button" onClick={() => navigate("profile")}><span className="avatar">{student?.name?.[0]?.toUpperCase() || "S"}</span><span>{student?.name || account?.username || "Student"}</span></button><button className="button button-quiet auth-logout" type="button" onClick={logout}>Log out</button></> : authState === "loading" ? <span className="auth-loading-label">Checking session…</span> : <><button className="button button-quiet auth-header-link" type="button" onClick={() => navigate("login")}>Sign in</button>{!demoMode && <button className="button button-primary auth-header-link" type="button" onClick={() => navigate("register")}>Create account</button>}</>}
       </div>
     </header>
+
+    {demoMode && <div className="demo-mode-banner" role="status"><strong>DEMO MODE</strong> — quiz results are temporary and reset when the server restarts. PostgreSQL is not used.</div>}
 
     <main id="main-content" className="page-container">
       {authError && <Notice type="warning" message={authError} />}
       {authState === "loading" && PRIVATE_PAGES.has(page) ? <div className="auth-loading panel" role="status">Checking your sign-in…</div> : <>
         {page === "home" && <Home onNavigate={navigate} skills={skills} skillsState={skillsState} />}
-        {(page === "login" || page === "register") && authState === "anonymous" && <AuthPage mode={page} onNavigate={navigate} onLogin={async (payload) => completeAuthentication(await api.login(payload))} onRegister={async (payload) => completeAuthentication(await api.register(payload))} />}
+        {(page === "login" || page === "register") && authState === "anonymous" && <AuthPage mode={page} demoMode={demoMode} onNavigate={navigate} onLogin={async (payload) => completeAuthentication(await api.login(payload))} onRegister={async (payload) => completeAuthentication(await api.register(payload))} />}
         {page === "skills" && authState === "authenticated" && <Skills skills={skills} skillsState={skillsState} studentSkills={studentSkills} analysis={analysis} onNavigate={navigate} />}
         {page === "assessment" && authState === "authenticated" && <Assessment onNavigate={navigate} skills={skills} studentId={studentId} studentSkills={studentSkills} assessments={assessments} onSubmit={submitAssessment} />}
       {page === "dashboard" && authState === "authenticated" && <Dashboard onNavigate={navigate} onRetry={() => loadStudent(studentId)} onGroqCheck={checkGroq} groqStatus={groqStatus} skills={skills} student={student} studentLoading={studentLoading} studentSkills={studentSkills} assessments={assessments} progress={progress} dataError={dataError} studentId={studentId} analysis={analysis} analysisState={analysisState} analysisError={analysisError} />}
@@ -337,11 +315,7 @@ function App() {
   </div>;
 }
 
-function apiStateLabel(state) {
-  return ({ checking: "Checking API", connected: "API connected", setup: "Database setup needed", "database-down": "Database unavailable", offline: "API unavailable" })[state] || "API status";
-}
-
-function AuthPage({ mode, onNavigate, onLogin, onRegister }) {
+function AuthPage({ mode, demoMode, onNavigate, onLogin, onRegister }) {
   const registering = mode === "register";
   const [form, setForm] = useState({ username_or_email: "", username: "", email: "", name: "", program: "", batch: "", password: "", confirmPassword: "" });
   const [busy, setBusy] = useState(false);
@@ -399,19 +373,9 @@ function AuthPage({ mode, onNavigate, onLogin, onRegister }) {
         {error && <Notice type="warning" message={error} />}
         <button className="button button-primary auth-submit" type="submit" disabled={busy}>{busy ? (registering ? "Creating account…" : "Signing in…") : (registering ? "Create account" : "Sign in")}<Icon name="arrow" size={16} /></button>
       </form>
-      <p className="auth-switch">{registering ? "Already have an account?" : "New to the tracker?"} <button type="button" className="text-button" onClick={() => onNavigate(registering ? "login" : "register")}>{registering ? "Sign in" : "Create an account"}</button></p>
+      {!demoMode && <p className="auth-switch">{registering ? "Already have an account?" : "New to the tracker?"} <button type="button" className="text-button" onClick={() => onNavigate(registering ? "login" : "register")}>{registering ? "Sign in" : "Create an account"}</button></p>}
     </div>
   </section>;
-}
-
-function Eyebrow({ children }) { return <p className="eyebrow"><span className="eyebrow-dot" />{children}</p>; }
-function SectionTitle({ eyebrow, title, detail, action }) { return <div className="section-title-row"><div>{eyebrow && <p className="eyebrow">{eyebrow}</p>}<h2>{title}</h2>{detail && <p className="section-detail">{detail}</p>}</div>{action}</div>; }
-function EmptyState({ icon = "chart", title, detail, action }) { return <div className="empty-state"><span className="empty-state-icon"><Icon name={icon} size={21} /></span><h3>{title}</h3><p>{detail}</p>{action}</div>; }
-function SkillApiStatus({ state }) {
-  if (state === "loading") return <div className="notice" role="status">Loading official skills…</div>;
-  if (state === "error") return <Notice type="warning" message="Could not load skills from FastAPI. Showing the canonical catalog for reference." />;
-  if (state === "empty") return <div className="notice" role="status">FastAPI returned no skill records.</div>;
-  return null;
 }
 
 function Home({ onNavigate, skills, skillsState }) {
@@ -494,7 +458,6 @@ function GroqConnectionCard({ status, onCheck }) {
 function Metric({ label,value,detail,icon,tone }) { return <article className="metric-card"><span className={`metric-icon metric-${tone}`}><Icon name={icon} size={18}/></span><div><p>{label}</p><strong>{value}</strong><small>{detail}</small></div></article>; }
 function ProfileCard({student,onClick}) { return <section className="panel profile-card"><div className="profile-card-head"><span className="eyebrow">STUDENT PROFILE</span><button className="icon-button" aria-label="Set up or view profile" onClick={onClick}><Icon name="arrow" size={15}/></button></div><div className="profile-main"><span className="large-avatar">{student?.name?.[0]?.toUpperCase()||"?"}</span><div><strong>{student?.name||"Profile not set up"}</strong><small>{student?`${student.program} · Batch ${student.batch}`:"Add a profile to get started"}</small></div></div>{student&&<div className="profile-email">{student.email}</div>}</section>; }
 function PanelEmpty({title,label,detail,image,alt,onClick}) { return <section className="panel empty-panel"><span className="eyebrow">{label}</span><h2>{title}</h2><p>{detail}</p>{image&&<img className="panel-feature-image" src={image} alt={alt} />}<button className="text-button" onClick={onClick}>View project status <Icon name="arrow" size={14}/></button></section>; }
-function Notice({type="info",message}) { return <div className={`notice notice-${type}`} role="status"><Icon name={type==="warning"?"warning":"check"} size={16}/><span>{message}</span></div>; }
 
 function SkillAnalysisPanel({analysis,state,error,onRetry,onNavigate,progress}) {
   if (state === "loading" || state === "idle") return <section className="panel analysis-panel" aria-labelledby="analysis-title"><span className="eyebrow">SKILL ANALYSIS</span><h2 id="analysis-title">Finding patterns in your results…</h2><p role="status">Loading saved assessment analysis.</p></section>;

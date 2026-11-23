@@ -20,7 +20,14 @@ def _postgres_url() -> str | None:
     return value
 
 
-DATABASE_URL = _postgres_url()
+DEMO_MODE = os.getenv("DEMO_MODE", "false").strip().lower() in {"1", "true", "yes", "on"}
+DATABASE_URL = None if DEMO_MODE else _postgres_url()
+DEMO_USERNAME = os.getenv("DEMO_USERNAME", "").strip().lower()
+DEMO_PASSWORD = os.getenv("DEMO_PASSWORD", "")
+DEMO_STUDENT_NAME = os.getenv("DEMO_STUDENT_NAME", "Syahrul Nalli").strip() or "Syahrul Nalli"
+DEMO_STUDENT_EMAIL = os.getenv("DEMO_STUDENT_EMAIL", "demo@example.com").strip().lower()
+DEMO_STUDENT_PROGRAM = os.getenv("DEMO_STUDENT_PROGRAM", "BCA (AI/ML)").strip() or "BCA (AI/ML)"
+DEMO_STUDENT_BATCH = os.getenv("DEMO_STUDENT_BATCH", "Demo").strip() or "Demo"
 APP_ENV = os.getenv("APP_ENV", "development").strip().lower()
 IS_PRODUCTION = APP_ENV == "production"
 SERVE_FRONTEND = os.getenv("SERVE_FRONTEND", "false").strip().lower() in {"1", "true", "yes", "on"}
@@ -53,8 +60,10 @@ def validate_production_config() -> None:
     """Fail closed when deployment would otherwise run with unsafe defaults."""
     if not IS_PRODUCTION:
         return
-    if not DATABASE_URL or not DATABASE_URL.startswith("postgresql+psycopg://"):
+    if not DEMO_MODE and (not DATABASE_URL or not DATABASE_URL.startswith("postgresql+psycopg://")):
         raise RuntimeError("Production requires a PostgreSQL DATABASE_URL.")
+    if DEMO_MODE and (not DEMO_USERNAME or len(DEMO_PASSWORD) < 12):
+        raise RuntimeError("Production demo mode requires DEMO_USERNAME and a DEMO_PASSWORD of at least 12 characters.")
     if len(JWT_SECRET_KEY.encode("utf-8")) < 32:
         raise RuntimeError("Production requires a JWT_SECRET_KEY of at least 32 bytes.")
     if not AUTH_COOKIE_SECURE:
