@@ -295,8 +295,6 @@ function App() {
       </div>
     </header>
 
-    {demoMode && <div className="demo-mode-banner" role="status"><strong>DEMO MODE</strong> — quiz results are temporary and reset when the server restarts. PostgreSQL is not used.</div>}
-
     <main id="main-content" className="page-container">
       {authError && <Notice type="warning" message={authError} />}
       {authState === "loading" && PRIVATE_PAGES.has(page) ? <div className="auth-loading panel" role="status">Checking your sign-in…</div> : <>
