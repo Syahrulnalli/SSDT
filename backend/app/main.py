@@ -21,6 +21,7 @@ from backend.app.core.database import Base, SessionLocal, engine
 from backend.app.init_db import initialize_database
 from backend.app.models import Assessment, AssessmentResult, Skill, Student, User  # noqa: F401
 from backend.app.services.skill_service import seed_official_skills
+from backend.app.services.demo_identity import seed_demo_identity
 from demo_data import DEMO_GAPS, DEMO_PROGRESS, DEMO_RECOMMENDATIONS, DEMO_SKILL_SCORES
 from skill_catalog import SKILLS
 
@@ -40,6 +41,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         Base.metadata.create_all(bind=engine)
         with SessionLocal() as db:
             seed_official_skills(db)
+            seed_demo_identity(db)
     elif engine is not None and AUTO_CREATE_TABLES:
         initialize_database()
     try:

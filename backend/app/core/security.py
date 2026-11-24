@@ -13,12 +13,14 @@ from backend.app.core.config import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     AUTH_COOKIE_NAME,
     AUTH_COOKIE_SECURE,
+    DEMO_MODE,
     FRONTEND_ORIGINS,
     IS_PRODUCTION,
     JWT_SECRET_KEY,
 )
 from backend.app.core.database import get_db, require_database
 from backend.app.models.user import User
+from backend.app.services.demo_identity import DEMO_USER_ID, build_demo_identity
 
 JWT_ALGORITHM = "HS256"
 JWT_ISSUER = "ssdt-api"
@@ -124,6 +126,14 @@ def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication is required.",
         ) from exc
+
+    if DEMO_MODE:
+        if user_id != DEMO_USER_ID:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication is required.",
+            )
+        return build_demo_identity()
 
     db = require_database(db)
     user = db.scalar(

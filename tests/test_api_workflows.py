@@ -4,7 +4,7 @@ from decimal import Decimal
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, func, select
+from sqlalchemy import create_engine, event, func, select
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -17,7 +17,7 @@ from backend.app.main import app
 from backend.app.models import Assessment, AssessmentResult, Skill, Student, User
 from backend.app.services.assessment_question_bank import ASSESSMENT_QUESTIONS, SKILL_IDS
 from backend.app.services.skill_service import seed_official_skills
-from backend.app.services import auth_service
+from backend.app.services import auth_service, demo_identity
 from skill_catalog import SKILLS
 
 
@@ -138,20 +138,24 @@ def test_auth_registration_login_session_cookie_and_logout(api_context):
 
 
 def test_demo_mode_auth_assessment_and_progress_are_temporary(api_context, monkeypatch):
-    client, _, _ = api_context
+    client, db, _ = api_context
     from backend.app.api.routes import auth as auth_routes
     from backend.app.api.routes import health as health_routes
     monkeypatch.setattr(auth_routes, "DEMO_MODE", True)
     monkeypatch.setattr(health_routes, "DEMO_MODE", True)
+    monkeypatch.setattr(security, "DEMO_MODE", True)
     monkeypatch.setattr(auth_service, "DEMO_MODE", True)
     monkeypatch.setattr(config, "DEMO_MODE", True)
     monkeypatch.setattr(config, "DATABASE_URL", None)
     monkeypatch.setattr(auth_service, "DEMO_USERNAME", "syahrul")
     monkeypatch.setattr(auth_service, "DEMO_PASSWORD", "Demo-password-2026!")
-    monkeypatch.setattr(auth_service, "DEMO_STUDENT_NAME", "Syahrul Nalli")
     monkeypatch.setattr(auth_service, "DEMO_STUDENT_EMAIL", "demo@example.com")
-    monkeypatch.setattr(auth_service, "DEMO_STUDENT_PROGRAM", "BCA (AI/ML)")
-    monkeypatch.setattr(auth_service, "DEMO_STUDENT_BATCH", "Demo")
+    monkeypatch.setattr(demo_identity, "DEMO_USERNAME", "syahrul")
+    monkeypatch.setattr(demo_identity, "DEMO_STUDENT_EMAIL", "demo@example.com")
+    monkeypatch.setattr(demo_identity, "DEMO_STUDENT_NAME", "Syahrul Nalli")
+    monkeypatch.setattr(demo_identity, "DEMO_STUDENT_PROGRAM", "BCA (AI/ML)")
+    monkeypatch.setattr(demo_identity, "DEMO_STUDENT_BATCH", "Demo")
+    demo_identity.seed_demo_identity(db)
 
     assert client.get("/api/health").json()["storage_mode"] == "temporary-demo"
     assert client.get("/api/health/database").json()["database"] == "sqlite-demo"
@@ -168,13 +172,28 @@ def test_demo_mode_auth_assessment_and_progress_are_temporary(api_context, monke
     )
     assert wrong.status_code == 401
 
-    login = client.post(
-        "/api/auth/login", headers={"Origin": "http://localhost:5173"},
-        json={"username_or_email": "syahrul", "password": "Demo-password-2026!"},
+    missing = client.post(
+        "/api/auth/login", headers={"Origin": "http://localhost:5173"}, json={},
     )
-    assert login.status_code == 200
-    student = login.json()["student"]
-    assert student["name"] == "Syahrul Nalli"
+    assert missing.status_code == 422
+
+    def fail_on_database_query(*_args, **_kwargs):
+        raise AssertionError("Demo login/session restoration must not query the demo store.")
+
+    event.listen(db.get_bind(), "before_cursor_execute", fail_on_database_query)
+    try:
+        login = client.post(
+            "/api/auth/login", headers={"Origin": "http://localhost:5173"},
+            json={"username_or_email": "Syahrul", "password": "Demo-password-2026!"},
+        )
+        assert login.status_code == 200, login.text
+        student = login.json()["student"]
+        assert student["name"] == "Syahrul Nalli"
+        restored = client.get("/api/auth/me")
+        assert restored.status_code == 200
+        assert restored.json()["student"]["id"] == student["id"]
+    finally:
+        event.remove(db.get_bind(), "before_cursor_execute", fail_on_database_query)
 
     assessment = client.post(
         "/api/assessments", headers={"Origin": "http://localhost:5173"},

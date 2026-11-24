@@ -51,7 +51,8 @@ def login(
     response: Response,
     db: Session | None = Depends(get_db),
 ) -> AuthSessionRead:
-    db = require_database(db)
+    if not DEMO_MODE:
+        db = require_database(db)
     user, student = authenticate_user(db, payload)
     set_auth_cookie(response, user.id)
     return AuthSessionRead(user=user, student=student)

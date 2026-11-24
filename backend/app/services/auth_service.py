@@ -13,15 +13,13 @@ from sqlalchemy.orm import Session
 from backend.app.core.config import (
     DEMO_MODE,
     DEMO_PASSWORD,
-    DEMO_STUDENT_BATCH,
     DEMO_STUDENT_EMAIL,
-    DEMO_STUDENT_NAME,
-    DEMO_STUDENT_PROGRAM,
     DEMO_USERNAME,
 )
 from backend.app.models.student import Student
 from backend.app.models.user import User
 from backend.app.schemas.auth import LoginRequest, RegisterRequest
+from backend.app.services.demo_identity import build_demo_identity
 
 password_hash = PasswordHash.recommended()
 _dummy_password_hash = password_hash.hash(secrets.token_urlsafe(32))
@@ -69,7 +67,7 @@ def register_user(db: Session, payload: RegisterRequest) -> tuple[User, Student]
     return user, student
 
 
-def authenticate_user(db: Session, payload: LoginRequest) -> tuple[User, Student]:
+def authenticate_user(db: Session | None, payload: LoginRequest) -> tuple[User, Student]:
     identifier = payload.username_or_email
     if DEMO_MODE:
         if not DEMO_USERNAME or not DEMO_PASSWORD:
@@ -89,32 +87,14 @@ def authenticate_user(db: Session, payload: LoginRequest) -> tuple[User, Student
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        user = db.scalar(select(User).where(User.username == DEMO_USERNAME))
-        if user is None:
-            user = User(
-                username=DEMO_USERNAME,
-                email=DEMO_STUDENT_EMAIL,
-                password_hash=password_hash.hash(DEMO_PASSWORD),
-            )
-            user.student = Student(
-                name=DEMO_STUDENT_NAME,
-                email=DEMO_STUDENT_EMAIL,
-                program=DEMO_STUDENT_PROGRAM,
-                batch=DEMO_STUDENT_BATCH,
-            )
-            db.add(user)
-        else:
-            user.password_hash = password_hash.hash(DEMO_PASSWORD)
-            if user.student is None:
-                user.student = Student(
-                    name=DEMO_STUDENT_NAME,
-                    email=DEMO_STUDENT_EMAIL,
-                    program=DEMO_STUDENT_PROGRAM,
-                    batch=DEMO_STUDENT_BATCH,
-                )
-        db.commit()
-        db.refresh(user)
+        user = build_demo_identity()
         return user, user.student
+
+    if db is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="PostgreSQL is not configured. Set DATABASE_URL in the backend environment.",
+        )
 
     user = db.scalar(
         select(User)
